@@ -8,24 +8,24 @@
  * *****************************************************************/
 
 
-typedef struct estado{
+/*typedef struct estado{
     char* vacio;
     char* ocupado;
-    char* borrado;
+    char* borrado;    
 
-}estado_t;
+}estado_t;*/
 
-typedef struct nodo {
+/*typedef struct nodo {
 
     void* dato;
     struct nodo* proximo;
 
-}nodo_t;
+}nodo_t;*/
 
 typedef struct hash_campo {
     char *clave;
     void *valor;
-    estado_t estado; 
+    int estado ; // va de 0 a 2 ocupado, vacio, borrado en ese orden no se si es lo mas correcto pero safa por el momento
 } hash_campo_t;
 
 
@@ -42,27 +42,29 @@ struct hash_iter{
 
 };
 
+
+
 /* *****************************************************************
  *                              EXTRAS
  * *****************************************************************/
 
-hash_campo_t* crear_tabla_hash (){
+hash_campo_t* crear_tabla_hash (hash_t* hash){
 
     hash_campo_t* tabla = malloc((hash->largo)*sizeof(hash_campo_t*));
 
     if (!tabla) return NULL;
 
-    for (int i=0;i<hash->largo;i++)
+    for (int i=0;i<hash->largo;i++){
 
-      tabla[i]=VACIO;           //EL vacio esta mal 
+        hash->tabla[i].clave = NULL;
+        hash->tabla[i].valor = NULL; 
+        hash->tabla[i].estado = 1;
+    }
 
-    tabla->clave = NULL;     //         no tengo ni 
-    tabla->valor = NULL;     //         idea de como
-    tabla->estado = "vacio"; //         van estos tres
     return tabla;
 }
 
-nodo_t *crear_nodo(void *dato){
+/*nodo_t *crear_nodo(void *dato){
 
     nodo_t* nodo = malloc(sizeof(nodo_t));
 
@@ -72,14 +74,17 @@ nodo_t *crear_nodo(void *dato){
     nodo->proximo = NULL;
 
     return nodo;
-}
+}*/
 
-   
-int Hashing(char *cad){	
-    int valor;
-    for (valor=0; ; c++)
-   	  valor += (int)*c;
-    return (valor%hash->largo);
+size_t hashing(unsigned char *str)
+{
+    size_t hash = 5381;
+    int c;
+
+    while (c = *str++)
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    return hash;
 }
 
 
@@ -93,21 +98,18 @@ hash_t *hash_crear(hash_destruir_dato_t destruir_dato){
 
     if(!hash)  return NULL;
 
+    hash->largo = LARGO_INICIAL;
+    hash->destruir_dato = destruir_dato;
+    hash->cantidad = 0;
+    hash->carga = 0;
+
     hash->tabla = crear_tabla_hash();
 
-    if(!tabla){
+    if(!hash->tabla){
 
         free(hash);
-
         return NULL;
     }
-    hash->destruir_dato = destruir_dato;
-
-    hash->largo = LARGO_INICIAL;
-
-    hash->cantidad = 0;
-
-    hash->carga = 0;
 
     return hash;
 }
@@ -117,10 +119,14 @@ size_t hash_cantidad(const hash_t *hash){
 }
 
 bool hash_guardar(hash_t *hash, const char *clave, void *dato){
-    nodo_t* nodo = crear_nodo(dato);
-    if (nodo == NULL){
-        return false;
-    }
+    
+    int clave_hash = hashing(clave);
+
+    hash->tabla[clave_hash]->clave = clave_hash;
+    hash->tabla[clave_hash]->valor = dato;
+    hash->tabla[clave_hash]->estado->estado = 0;
+
+    return true;
 }
 
 void hash_destruir(hash_t *hash){
