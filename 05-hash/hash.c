@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "hash.h"
 #define LARGO_INICIAL 10
 
@@ -76,12 +77,12 @@ hash_campo_t* crear_tabla_hash (hash_t* hash){
     return nodo;
 }*/
 
-size_t hashing(unsigned char *str)
+size_t hashing(char *str)
 {
     size_t hash = 5381;
     int c;
 
-    while (c = *str++)
+    while ((c = *str++))
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 
     return hash;
@@ -103,7 +104,7 @@ hash_t *hash_crear(hash_destruir_dato_t destruir_dato){
     hash->cantidad = 0;
     hash->carga = 0;
 
-    hash->tabla = crear_tabla_hash();
+    hash->tabla = crear_tabla_hash(hash);
 
     if(!hash->tabla){
 
@@ -120,18 +121,21 @@ size_t hash_cantidad(const hash_t *hash){
 
 bool hash_guardar(hash_t *hash, const char *clave, void *dato){
     
-    int clave_hash = hashing(clave);
+    char* clave_aux; 
+    strcpy(clave_aux,clave);    // esto porque no me deja pasar clave porque es const
 
-    hash->tabla[clave_hash]->clave = clave_hash;
-    hash->tabla[clave_hash]->valor = dato;
-    hash->tabla[clave_hash]->estado->estado = 0;
+    size_t clave_hash = hashing(clave_aux);
+
+    hash->tabla[clave_hash].clave = clave_aux;
+    hash->tabla[clave_hash].valor = dato;
+    hash->tabla[clave_hash].estado = 0;
 
     return true;
 }
 
-void hash_destruir(hash_t *hash){
-    for (int t = 0 , i<hash->largo, i++){
+/*void hash_destruir(hash_t *hash){
+    for (int i = 0 ; i<hash->largo; i++){
         hash->destruir_dato(hash->tabla[i]);
     }
-    free(hash)
-}
+    free(hash);
+}/*
