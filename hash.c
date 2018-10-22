@@ -10,9 +10,7 @@
 
 
 /*typedef struct estado{
-    char* vacio;
-    char* ocupado;
-    char* borrado;    
+    int estado; 
 
 }estado_t;*/
 
@@ -26,7 +24,7 @@
 typedef struct hash_campo {
     char *clave;
     void *valor;
-    int estado ; // va de 0 a 2 ocupado, vacio, borrado en ese orden no se si es lo mas correcto pero safa por el momento
+    int estado ; // va de 0 a 2 vacio, ocupado, borrado en ese orden no se si es lo mas correcto pero safa por el momento
 } hash_campo_t;
 
 
@@ -93,6 +91,9 @@ size_t hashing(char *str)
  *                            PRIMITIVAS
  * *****************************************************************/
 
+double hash_carga(const hash_t *hash){
+    return hash->cantidad/hash->largo;
+}
 
 hash_t *hash_crear(hash_destruir_dato_t destruir_dato){
     hash_t* hash = malloc(sizeof(hash_t));
@@ -121,21 +122,55 @@ size_t hash_cantidad(const hash_t *hash){
 
 bool hash_guardar(hash_t *hash, const char *clave, void *dato){
     
-    char* clave_aux; 
+    char *clave_aux = malloc(sizeof(char)*strlen(clave));
+
+    if (!clave_aux) return false;
+
     strcpy(clave_aux,clave);    // esto porque no me deja pasar clave porque es const
 
-    size_t clave_hash = hashing(clave_aux);
+    size_t indice = hashing(clave_aux);
 
-    hash->tabla[clave_hash].clave = clave_aux;
-    hash->tabla[clave_hash].valor = dato;
-    hash->tabla[clave_hash].estado = 0;
+    while(hash->tabla[indice].estado == 0){
+        indice++;
+    }
+
+    hash->tabla[indice].clave = clave_aux;
+    hash->tabla[indice].valor = dato;
+    hash->tabla[indice].estado = 0;
 
     return true;
 }
 
+void *hash_borrar(hash_t *hash, const char *clave){
+    if(hash->cantidad == 0) return NULL;
+
+    void* valor;
+
+    size_t indice = hashing(clave);
+
+    while ( hash->tabla[indice].estado != 0){
+        if (hash->tabla[indice].clave == clave){
+            hash->tabla[indice].estado = 2;
+            valor = hash->tabla[indice].valor;
+            return valor;
+        }
+        indice++;
+    }
+}
+
+// void *hash_obtener(const hash_t *hash, const char *clave){
+//     size_t clave_aux = hash(clave);
+//     for( int i = 0 ; i < hash->largo;  i++){
+//         hash->tabla[i] == hash->tabla[hash(clave)]
+//     }
+//}
+
+// bool hash_pertenece(const hash_t *hash, const char *clave){
+
+// }
 /*void hash_destruir(hash_t *hash){
     for (int i = 0 ; i<hash->largo; i++){
         hash->destruir_dato(hash->tabla[i]);
     }
     free(hash);
-}/*
+}*/
