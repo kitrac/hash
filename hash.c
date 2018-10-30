@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "hash.h"
-#define LARGO 29
+#define LARGO 10
 #define FACTOR_RED 0.7
 #define FACTOR_MULT 2
 /* *****************************************************************
@@ -37,9 +37,8 @@ struct hash {
 };
 
 struct hash_iter{
-    hash_t* hash;
+    const hash_t* hash;
     size_t indice;
-
 };
 
 
@@ -48,13 +47,13 @@ struct hash_iter{
  *                              EXTRAS
  * *****************************************************************/
 
-hash_campo_t* crear_tabla_hash (hash_t* hash){
+hash_campo_t* crear_tabla_hash (size_t largo){
 
-    hash_campo_t* tabla = malloc((hash->largo)*sizeof(hash_campo_t));
+    hash_campo_t* tabla = malloc(largo*sizeof(hash_campo_t));
 
     if (!tabla) return NULL;
 
-    for (int i=0;i<hash->largo;i++){
+    for (int i=0;i<largo;i++){
 
         tabla[i].clave = NULL;
         tabla[i].valor = NULL; 
@@ -66,15 +65,16 @@ hash_campo_t* crear_tabla_hash (hash_t* hash){
 
 size_t hashing(const char *str, const hash_t* hash)
 {
-    // size_t hash = 11;
-    // int c;
+     size_t indice = 11;
+     int c;
 
-    // while ((c = *str++))
-    //     hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-    size_t indice = hash->largo;
+     while ((c = *str++))
+         indice = ((indice << 5) + indice) + c; /* hash * 33 + c */
+    
+    /*size_t indice = hash->largo;
     for (size_t i = 0; i< strlen(str); i++){
         indice = 31 * (indice + str[i]);
-    }
+    }/*/
     return indice%hash->largo;
 }
 
@@ -84,7 +84,7 @@ size_t hashing(const char *str, const hash_t* hash)
  * *****************************************************************/
 
 
-size_t buscar(const hash_t* hash, char* clave){ 
+size_t busqueda(const hash_t* hash, char* clave){ 
 
     size_t indice = hashing(clave,hash);
 
@@ -92,8 +92,8 @@ size_t buscar(const hash_t* hash, char* clave){
 
         if(strcmp(hash->tabla[indice].clave,clave) == 0)    return indice;
         indice++;
+        if (indice == hash->largo)  indice = 0;
     }
-
     return indice;
 }
 // long unsigned int hash_carga(const hash_t *hash){
@@ -109,9 +109,9 @@ hash_t *hash_crear(hash_destruir_dato_t destruir_dato){
     hash->destruir_dato = destruir_dato;
     hash->cantidad = 0;
     hash->borrados = 0;
-    hash->carga = 0;
+    hash->carga = (hash->cantidad+hash->borrados)/hash->largo;
 
-    hash->tabla = crear_tabla_hash(hash);
+    hash->tabla = crear_tabla_hash(hash->largo);
 
     if(!hash->tabla){
 
@@ -128,35 +128,43 @@ size_t hash_cantidad(const hash_t *hash){
 
 
 void hash_redimensionar(hash_t* hash, size_t tam_nuevo) {
+    //printf("tam_nuevo: %ld\n", tam_nuevo);
+    size_t largo = hash->largo;
     hash->largo = tam_nuevo;
-    hash_campo_t* tabla_nuevo = realloc(hash->tabla, tam_nuevo * sizeof(int));
-    for ( int i = 0; i<hash->largo; i++){
+    //hash_campo_t* tabla_nuevo = realloc(hash->tabla, tam_nuevo * sizeof(int));
+    hash_campo_t* tabla_nueva = crear_tabla_hash(tam_nuevo);
+    for ( int i = 0; i<largo; i++){
         if(hash->tabla[i].estado == OCUPADO){
-            //char* hola = hash->tabla[i].clave;
             size_t indice  = hashing(hash->tabla[i].clave,hash);
-            tabla_nuevo[indice].estado = OCUPADO;
-            tabla_nuevo[indice].clave = hash->tabla[i].clave;
-            tabla_nuevo[indice].valor = hash->tabla[i].valor;
-
+            while(tabla_nueva[indice].estado != VACIO){
+                indice++;
+                if (indice == hash->largo)  indice = 0;
+            }
+            tabla_nueva[indice].estado = OCUPADO;
+            tabla_nueva[indice].clave = hash->tabla[i].clave;
+            tabla_nueva[indice].valor = hash->tabla[i].valor;
         }
     }
-    hash->tabla =  tabla_nuevo;
+    hash->tabla =  tabla_nueva;
     hash->borrados = 0;
 }
 
 
 bool hash_guardar(hash_t *hash, const char *clave, void *dato){
-    if(((hash->cantidad+hash->borrados)/hash->largo)>= FACTOR_RED){
+    //a = (double) 5 / 2; /* a == 2.5*/
+    size_t divv = hash->cantidad+hash->borrados;
+
+    float red =((float)(divv)/(float)(hash->largo));
+
+    if(red >= 0.7){
         hash_redimensionar(hash,hash->largo*FACTOR_MULT);
     }
     
-    char *clave_aux = malloc(sizeof(char)*strlen(clave));
-    
-    if (!clave_aux) return false; 
+    char *clave_aux;
 
     clave_aux = strdup(clave);
 
-    size_t indice = buscar(hash,clave_aux);
+    size_t indice = busqueda(hash,clave_aux);
 
     if (hash_pertenece(hash,clave)){
         hash->tabla[indice].valor = dato;
@@ -178,8 +186,7 @@ void *hash_borrar(hash_t *hash, const char *clave){
 
     clave_aux = strdup(clave);
 
-    size_t indice = buscar(hash,clave_aux);
-
+    size_t indice = busqueda(hash,clave_aux);
     if (strcmp(hash->tabla[indice].clave,clave) == 0 && hash->tabla[indice].estado == BORRADO){
             return NULL;
         }
@@ -202,11 +209,14 @@ void *hash_obtener(const hash_t *hash, const char *clave){
     clave_aux = strdup(clave);
 
     size_t indice = hashing(clave_aux,hash);
-
-    if (strcmp(hash->tabla[indice].clave,clave) == 0 && hash->tabla[indice].estado == BORRADO){
+    while (hash->tabla[indice].estado != VACIO){
+        if(strcmp(hash->tabla[indice].clave,clave) == 0 && hash->tabla[indice].estado == BORRADO){
             return NULL;
         }
-
+        if (strcmp(hash->tabla[indice].clave,clave) == 0) return hash->tabla[indice].valor;
+        indice++;
+        if(indice == hash->largo)  indice = 0;
+    }
     return hash->tabla[indice].valor;
 }
 
@@ -221,6 +231,7 @@ bool hash_pertenece(const hash_t *hash, const char *clave){
             return true;
         }
         indice++;
+        if(indice == hash->largo)  indice = 0;
     }
   
     return false;
@@ -237,28 +248,55 @@ void hash_destruir(hash_t *hash){
     free(hash);
 }
 
+size_t obtener_ocupado(hash_iter_t* iter){
+    if(iter->indice!=0)     iter->indice++;
+    while(iter->hash->tabla[iter->indice].estado != OCUPADO && !hash_iter_al_final(iter)){
+        iter->indice++;
+    }
+    if(hash_iter_al_final(iter)){
+        return -1;
+    }
+    return iter->indice;
+}
+
 hash_iter_t *hash_iter_crear(const hash_t *hash){
+
     hash_iter_t* iter = malloc(sizeof(hash_iter_t));
-    // if(!iter){
-    //     return NULL;
-    // }
-    // iter->hash = hash;
-    // iter->indice = 0;
+
+    if(!iter){
+        return NULL;
+    }
+
+    iter->hash = hash;
+
+    iter->indice = 0;
+
+    obtener_ocupado(iter);
+
     return iter;
 }
 
 bool hash_iter_avanzar(hash_iter_t *iter){
+
+    if(hash_iter_al_final(iter)) return false;
+
+    if (obtener_ocupado(iter) == -1 ){
+        return false;
+    }
+
     return true;
 }
 
 const char *hash_iter_ver_actual(const hash_iter_t *iter){
-    return "adjsldjas";
+
+    if(hash_iter_al_final(iter)) return NULL;
+
+    return iter->hash->tabla[iter->indice].clave;
 }
 
 bool hash_iter_al_final(const hash_iter_t *iter){
-    return true;
+    return iter->indice == iter->hash->largo;
 }
-
 
 void hash_iter_destruir(hash_iter_t* iter){
     free(iter);
