@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "hash.h"
-#define LARGO 10
+#define LARGO 100000
 #define FACTOR_RED 0.7
 #define FACTOR_MULT 2
 /* *****************************************************************
@@ -62,7 +62,13 @@ hash_campo_t* crear_tabla_hash (size_t largo){
 
     return tabla;
 }
-
+void tabla_destruir(hash_campo_t *tabla,size_t largo,hash_destruir_dato_t destruir_dato){
+    for (int i = 0 ; i<largo; i++){
+        if(tabla[i].estado != VACIO){
+            if (destruir_dato!=NULL) destruir_dato(tabla[i].valor);
+        }
+    }
+}
 size_t hashing(const char *str, const hash_t* hash)
 {
      size_t indice = 11;
@@ -84,7 +90,7 @@ size_t hashing(const char *str, const hash_t* hash)
  * *****************************************************************/
 
 
-size_t busqueda(const hash_t* hash, char* clave){ 
+size_t busqueda(const hash_t* hash, const char* clave){ 
 
     size_t indice = hashing(clave,hash);
 
@@ -131,10 +137,14 @@ void hash_redimensionar(hash_t* hash, size_t tam_nuevo) {
     //printf("tam_nuevo: %ld\n", tam_nuevo);
     size_t largo = hash->largo;
     hash->largo = tam_nuevo;
-    //hash_campo_t* tabla_nuevo = realloc(hash->tabla, tam_nuevo * sizeof(int));
     hash_campo_t* tabla_nueva = crear_tabla_hash(tam_nuevo);
+    hash_campo_t* tabla = hash->tabla;
+    hash->tabla =  tabla_nueva;
+    hash->borrados = 0;
+    hash->cantidad = 0;
     for ( int i = 0; i<largo; i++){
-        if(hash->tabla[i].estado == OCUPADO){
+        if(tabla[i].estado == OCUPADO){
+            // hash_guardar(hash, tabla[i].clave, tabla[i].valor);
             size_t indice  = hashing(hash->tabla[i].clave,hash);
             while(tabla_nueva[indice].estado != VACIO){
                 indice++;
@@ -145,8 +155,8 @@ void hash_redimensionar(hash_t* hash, size_t tam_nuevo) {
             tabla_nueva[indice].valor = hash->tabla[i].valor;
         }
     }
-    hash->tabla =  tabla_nueva;
-    hash->borrados = 0;
+    tabla_destruir(tabla,largo,hash->destruir_dato);
+    free(tabla);
 }
 
 
@@ -164,10 +174,11 @@ bool hash_guardar(hash_t *hash, const char *clave, void *dato){
 
     clave_aux = strdup(clave);
 
-    size_t indice = busqueda(hash,clave_aux);
+    size_t indice = busqueda(hash,clave);
 
     if (hash_pertenece(hash,clave)){
         hash->tabla[indice].valor = dato;
+        free(clave_aux);
         return true;
     }
 
@@ -182,11 +193,11 @@ bool hash_guardar(hash_t *hash, const char *clave, void *dato){
 void *hash_borrar(hash_t *hash, const char *clave){
     if(hash->cantidad == 0) return NULL;
 
-    char* clave_aux;
+    // char* clave_aux;
 
-    clave_aux = strdup(clave);
+    // clave_aux = clave;
 
-    size_t indice = busqueda(hash,clave_aux);
+    size_t indice = busqueda(hash,clave);
     if (strcmp(hash->tabla[indice].clave,clave) == 0 && hash->tabla[indice].estado == BORRADO){
             return NULL;
         }
@@ -204,11 +215,11 @@ void *hash_obtener(const hash_t *hash, const char *clave){
 
     if(hash->cantidad == 0) return NULL; 
 
-    char* clave_aux;
+    // char* clave_aux;
 
-    clave_aux = strdup(clave);
+    // clave_aux = clave;
 
-    size_t indice = hashing(clave_aux,hash);
+    size_t indice = hashing(clave,hash);
     while (hash->tabla[indice].estado != VACIO){
         if(strcmp(hash->tabla[indice].clave,clave) == 0 && hash->tabla[indice].estado == BORRADO){
             return NULL;
@@ -238,12 +249,14 @@ bool hash_pertenece(const hash_t *hash, const char *clave){
 
 }
 
+
 void hash_destruir(hash_t *hash){
-    for (int i = 0 ; i<hash->largo; i++){
-        if(hash->tabla[i].estado != VACIO){
-            if (hash->destruir_dato!=NULL) hash->destruir_dato(hash->tabla[i].valor);
-        }
-    }
+    tabla_destruir(hash->tabla, hash->largo,hash->destruir_dato);
+    // for (int i = 0 ; i<hash->largo; i++){
+    //     if(hash->tabla[i].estado != VACIO){
+    //         if (hash->destruir_dato!=NULL) hash->destruir_dato(hash->tabla[i].valor);
+    //     }
+    // }
     free(hash->tabla);
     free(hash);
 }

@@ -326,7 +326,7 @@ static void prueba_hash_iterar()
     /* Vuelve a tratar de avanzar, por las dudas */
     print_test("Prueba hash iterador ver actual, es NULL", !hash_iter_ver_actual(iter));
     print_test("Prueba hash iterador avanzar es false", !hash_iter_avanzar(iter));
-    print_test("Prueba hash iterador esta al final, es true", hash_iter_al_final(iter));
+    print_test("33Prueba hash iterador esta al final, es true", hash_iter_al_final(iter));
 
     hash_iter_destruir(iter);
     hash_destruir(hash);
