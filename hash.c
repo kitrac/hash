@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "hash.h"
-#define LARGO 100000
+#define LARGO 10
 #define FACTOR_RED 0.7
 #define FACTOR_MULT 2
 /* *****************************************************************
@@ -64,23 +64,25 @@ hash_campo_t* crear_tabla_hash (size_t largo){
 }
 void tabla_destruir(hash_campo_t *tabla,size_t largo,hash_destruir_dato_t destruir_dato){
     for (int i = 0 ; i<largo; i++){
-        if(tabla[i].estado != VACIO){
-            if (destruir_dato!=NULL) destruir_dato(tabla[i].valor);
+        //if(tabla[i].estado != VACIO){
+        if (destruir_dato!=NULL) {
+            destruir_dato(tabla[i].valor);
         }
+        free(tabla[i].clave);
+        //}
     }
 }
 size_t hashing(const char *str, const hash_t* hash)
 {
-     size_t indice = 11;
-     int c;
-
-     while ((c = *str++))
-         indice = ((indice << 5) + indice) + c; /* hash * 33 + c */
+    //  size_t indice = 11;
+    //  int c;
+    //  while ((c = *str++))
+    //      indice = ((indice << 5) + indice) + c; /* hash * 33 + c */
     
-    /*size_t indice = hash->largo;
+    size_t indice = hash->largo;
     for (size_t i = 0; i< strlen(str); i++){
         indice = 31 * (indice + str[i]);
-    }/*/
+    }
     return indice%hash->largo;
 }
 
@@ -177,6 +179,7 @@ bool hash_guardar(hash_t *hash, const char *clave, void *dato){
     size_t indice = busqueda(hash,clave);
 
     if (hash_pertenece(hash,clave)){
+        if(hash->destruir_dato) hash->destruir_dato(hash->tabla[indice].valor);
         hash->tabla[indice].valor = dato;
         free(clave_aux);
         return true;
@@ -263,7 +266,7 @@ void hash_destruir(hash_t *hash){
 
 size_t obtener_ocupado(hash_iter_t* iter){
     if(iter->indice!=0)     iter->indice++;
-    while(iter->hash->tabla[iter->indice].estado != OCUPADO && !hash_iter_al_final(iter)){
+    while(!hash_iter_al_final(iter) && iter->hash->tabla[iter->indice].estado != OCUPADO){
         iter->indice++;
     }
     if(hash_iter_al_final(iter)){
@@ -312,5 +315,6 @@ bool hash_iter_al_final(const hash_iter_t *iter){
 }
 
 void hash_iter_destruir(hash_iter_t* iter){
+    //tabla_destruir(iter->hash->tabla, iter->hash->largo,iter->hash->destruir_dato);
     free(iter);
 }
