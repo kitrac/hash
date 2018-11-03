@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "hash.h"
-#define LARGO 10000
+#define LARGO 145
 #define FACTOR_RED 0.7
 #define FACTOR_MULT 2
 /* *****************************************************************
@@ -165,19 +165,20 @@ bool hash_guardar(hash_t *hash, const char *clave, void *dato){
     if(red >= 0.7){
         hash_redimensionar(hash,hash->largo*FACTOR_MULT);
     }
-    
-    char *clave_aux;
-
-    clave_aux = strdup(clave);
 
     size_t indice = busqueda(hash,clave);
 
     if (hash_pertenece(hash,clave)){
-        if(hash->destruir_dato) hash->destruir_dato(hash->tabla[indice].valor);
+        void* dato_viejo = hash->tabla[indice].valor;
         hash->tabla[indice].valor = dato;
-        free(clave_aux);
+        if(hash->destruir_dato) hash->destruir_dato(dato_viejo);
         return true;
     }
+
+    char *clave_aux;
+
+    clave_aux = strdup(clave);
+
 
     hash->tabla[indice].clave = clave_aux;
     hash->tabla[indice].valor = dato;
@@ -189,10 +190,6 @@ bool hash_guardar(hash_t *hash, const char *clave, void *dato){
 
 void *hash_borrar(hash_t *hash, const char *clave){
     if(hash->cantidad == 0) return NULL;
-
-    // char* clave_aux;
-
-    // clave_aux = clave;
 
     size_t indice = busqueda(hash,clave);
     if (strcmp(hash->tabla[indice].clave,clave) == 0 && hash->tabla[indice].estado == BORRADO){
@@ -246,11 +243,10 @@ bool hash_pertenece(const hash_t *hash, const char *clave){
 
 }
 
-
 void hash_destruir(hash_t *hash){
     for (int i = 0 ; i<hash->largo; i++){
         if(hash->tabla[i].estado != VACIO){
-            if (hash->destruir_dato!=NULL) hash->destruir_dato(hash->tabla[i].valor);
+            if (hash->destruir_dato) hash->destruir_dato(hash->tabla[i].valor);
             }
         }
             
