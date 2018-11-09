@@ -117,7 +117,6 @@ static void prueba_hash_reemplazar_con_destruir()
     valor1b = malloc(10 * sizeof(char));
     valor2a = malloc(10 * sizeof(char));
     valor2b = malloc(10 * sizeof(char));
-
     /* Inserta 2 valores y luego los reemplaza (debe liberar lo que reemplaza) */
     print_test("Prueba hash insertar clave1", hash_guardar(hash, clave1, valor1a));
     print_test("Prueba hash obtener clave1 es valor1a", hash_obtener(hash, clave1) == valor1a);
@@ -151,6 +150,8 @@ static void prueba_hash_borrar()
     print_test("Prueba hash insertar clave1", hash_guardar(hash, clave1, valor1));
     print_test("Prueba hash insertar clave2", hash_guardar(hash, clave2, valor2));
     print_test("Prueba hash insertar clave3", hash_guardar(hash, clave3, valor3));
+
+    //printf("%ld",hash_cantidad(hash));
 
     /* Al borrar cada elemento comprueba que ya no está pero los otros sí. */
     print_test("Prueba hash pertenece clave3, es verdadero", hash_pertenece(hash, clave3));
